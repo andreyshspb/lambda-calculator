@@ -45,5 +45,37 @@ alphaEq (Lam symb1 expr1) (Lam symb2 expr2) = let first  = expr1 `alphaEq` (subs
                                                   second = expr2 `alphaEq` (subst symb1 (Var symb2) expr1)
                                               in  first && second
 alphaEq _                  _                = False
-                                                 
+                                            
 
+removeJust :: Maybe Expr -> Expr
+removeJust (Just expr) = expr
+removeJust (Nothing)   = Var ""
+
+
+-- beta reduction --
+reduceOnce :: Expr -> Maybe Expr
+reduceOnce (Var _)                    = Nothing
+
+reduceOnce ((Var symb) :@ right)      = let result = reduceOnce right 
+                                        in  if   result == Nothing 
+                                            then Nothing 
+                                            else Just ((Var symb) :@ removeJust result)
+
+reduceOnce ((Lam symb expr) :@ right) = let subterm = maybe right id (reduceOnce right)
+                                            term    = maybe expr id (reduceOnce expr)
+                                        in  Just (subst symb subterm term)
+
+reduceOnce (left :@ right)            = let left'   = reduceOnce left 
+                                            right'  = reduceOnce right
+                                            left''  = maybe left id left'
+                                            right'' = maybe right id right'
+                                            expr    = left'' :@ right''
+                                            result  = reduceOnce expr
+                                        in  if   left' == Nothing && right' == Nothing
+                                            then Nothing
+                                            else Just (maybe expr id result)
+
+reduceOnce (Lam symb expr)            = let result = reduceOnce expr 
+                                        in  if   result == Nothing 
+                                            then Nothing
+                                            else Just (Lam symb $ removeJust result)
