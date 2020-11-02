@@ -4,6 +4,7 @@ import Data.List
 type Symb = String 
 
 infixl 2 :@
+infix  1 `alphaEq`
 
 data Expr = Var Symb
           | Expr :@ Expr
@@ -34,5 +35,15 @@ subst var subterm (Lam symb expr)   = if symb == var then (Lam symb expr) else r
                                                                         second = subst var subterm first 
                                                                     in  Lam name second 
                                                                else Lam symb (subst var subterm expr)
+
+
+-- alpha equivalence --
+alphaEq :: Expr -> Expr -> Bool
+alphaEq (Var first)       (Var second)      = (first == second)
+alphaEq (left1 :@ right1) (left2 :@ right2) = (left1 `alphaEq` left2) && (right1 `alphaEq` right2)
+alphaEq (Lam symb1 expr1) (Lam symb2 expr2) = let first  = expr1 `alphaEq` (subst symb2 (Var symb1) expr2)
+                                                  second = expr2 `alphaEq` (subst symb1 (Var symb2) expr1)
+                                              in  first && second
+alphaEq _                  _                = False
                                                  
 
